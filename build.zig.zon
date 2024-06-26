@@ -1,6 +1,12 @@
 .{
     .name = "sycl-workshop-2023",
     .version = "0.0.1",
+    .paths = .{
+        "README.adoc",
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
     .dependencies = .{
         .rp2040 = .{
             .url = "https://github.com/ZigEmbeddedGroup/raspberrypi-rp2040/archive/35e9757bdb9873ffd7a5d2c192842cf93b58c7e5.tar.gz",
