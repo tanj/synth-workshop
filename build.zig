@@ -1,77 +1,86 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const Builder = std.build.Builder;
+const Builder = std.Build;
 
-const rp2040 = @import("rp2040");
-const uf2 = @import("uf2");
+const rp2040 = @import("microzig/bsp/raspberrypi/rp2040");
+const MicroZig = @import("microzig/build");
 
 const Demo = struct {
+    target: MicroZig.Target,
     name: []const u8,
-    path: []const u8,
+    file: []const u8,
 };
 
+const pico = rp2040.boards.raspberrypi.pico;
 const demos: []const Demo = &.{
     // zig fmt: off
-    .{ .name = "blinky",                 .path = "demos/00_blinky/main.zig" },
-    .{ .name = "uart",                   .path = "demos/01_uart/uart.zig" },
-    .{ .name = "uart_monitor",           .path = "demos/01_uart/monitor.zig" },
-    .{ .name = "single_tone",            .path = "demos/02_single_tone/main.zig" },
-    .{ .name = "volume_knob",            .path = "demos/03_volume_knob/main.zig" },
-    .{ .name = "monophonic_keypad",      .path = "demos/04_monophonic_keypad/main.zig" },
-    .{ .name = "adsr",                   .path = "demos/05_adsr/main.zig" },
-    .{ .name = "additive_synthesis",     .path = "demos/06_additive_synthesis/main.zig" },
-    .{ .name = "fm_synthesis_lfo",       .path = "demos/07_fm_synthesis/lfo.zig" },
-    .{ .name = "fm_synthesis_operators", .path = "demos/07_fm_synthesis/operators.zig" },
+    .{ .target = pico, .name = "blinky",                 .file = "demos/00_blinky/main.zig" },
+    .{ .target = pico, .name = "uart",                   .file = "demos/01_uart/uart.zig" },
+    .{ .target = pico, .name = "uart_monitor",           .file = "demos/01_uart/monitor.zig" },
+    .{ .target = pico, .name = "single_tone",            .file = "demos/02_single_tone/main.zig" },
+    .{ .target = pico, .name = "volume_knob",            .file = "demos/03_volume_knob/main.zig" },
+    .{ .target = pico, .name = "monophonic_keypad",      .file = "demos/04_monophonic_keypad/main.zig" },
+    .{ .target = pico, .name = "adsr",                   .file = "demos/05_adsr/main.zig" },
+    .{ .target = pico, .name = "additive_synthesis",     .file = "demos/06_additive_synthesis/main.zig" },
+    .{ .target = pico, .name = "fm_synthesis_lfo",       .file = "demos/07_fm_synthesis/lfo.zig" },
+    .{ .target = pico, .name = "fm_synthesis_operators", .file = "demos/07_fm_synthesis/operators.zig" },
     // zig fmt: on
 };
 
 pub fn build(b: *Builder) void {
+    const mz = MicroZig.init(b, .{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const raylib_zig_dep = b.dependency("raylib_zig", .{
-        .optimize = optimize,
-    });
+    // const raylib_zig_dep = b.dependency("raylib_zig", .{
+    //     .optimize = optimize,
+    // });
+    //
+    // const raylib_dep = b.dependency("raylib", .{
+    //     .optimize = optimize,
+    // });
 
-    const raylib_dep = b.dependency("raylib", .{
-        .optimize = optimize,
-    });
-
-    const uf2_dep = b.dependency("uf2", .{});
     for (demos) |demo| {
         const workshop_module = b.createModule(.{
-            .source_file = .{
+            .root_source_file = .{
                 .path = "src/workshop.zig",
             },
         });
-        const exe = rp2040.addPiPicoExecutable(b, .{
+        // `add_firmware` basically works like addExecutable, but takes a
+        // `microzig.Target` for target instead of a `std.zig.CrossTarget`.
+        //
+        // The target will convey all necessary information on the chip,
+        // cpu and potentially the board as well.
+        const firmware = mz.add_firmware(b, .{
             .name = demo.name,
-            .source_file = .{
-                .path = demo.path,
-            },
+            .target = demo.target,
             .optimize = optimize,
+            .root_source_file = .{ .path = demo.file },
         });
-        exe.addAppDependency("workshop", workshop_module, .{
-            .depend_on_microzig = true,
-        });
-        exe.installArtifact(b);
+        firmware.add_app_import("workshop", workshop_module, .{.depend_on_microzig = true});
 
-        const uf2_file = uf2.from_elf(uf2_dep, exe.inner, .{ .family_id = .RP2040 });
-        _ = b.addInstallFile(uf2_file, b.fmt("bin/{s}.uf2", .{demo.name}));
+        // `install_firmware()` is the MicroZig pendant to `Build.installArtifact()`
+        // and allows installing the firmware as a typical firmware file.
+        //
+        // This will also install into `$prefix/firmware` instead of `$prefix/bin`.
+        mz.install_firmware(b, firmware, .{});
+
+        // For debugging, we also always install the firmware as an ELF file
+        mz.install_firmware(b, firmware, .{ .format = .elf }); 
     }
 
     // monitor application
-    const monitor_exe = b.addExecutable(.{
-        .name = "monitor",
-        .root_source_file = .{ .path = "src/monitor_exe.zig" },
-        .optimize = optimize,
-    });
+    // const monitor_exe = b.addExecutable(.{
+    //     .name = "monitor",
+    //     .root_source_file = .{ .path = "src/monitor_exe.zig" },
+    //     .optimize = optimize,
+    // });
 
-    monitor_exe.addModule("raylib", raylib_zig_dep.module("raylib"));
-    monitor_exe.linkLibrary(raylib_dep.artifact("raylib"));
+    // monitor_exe.addModule("raylib", raylib_zig_dep.module("raylib"));
+    // monitor_exe.linkLibrary(raylib_dep.artifact("raylib"));
 
-    const monitor_run = b.addRunArtifact(monitor_exe);
-    const monitor_step = b.step("monitor", "Run monitor application");
-    monitor_step.dependOn(&monitor_run.step);
+    // const monitor_run = b.addRunArtifact(monitor_exe);
+    // const monitor_step = b.step("monitor", "Run monitor application");
+    // monitor_step.dependOn(&monitor_run.step);
 
     // tools
     const os_str = comptime enum_to_string(builtin.os.tag);

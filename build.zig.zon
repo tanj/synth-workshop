@@ -8,21 +8,13 @@
         "src",
     },
     .dependencies = .{
-        .rp2040 = .{
-            .url = "https://github.com/ZigEmbeddedGroup/raspberrypi-rp2040/archive/35e9757bdb9873ffd7a5d2c192842cf93b58c7e5.tar.gz",
-            .hash = "1220aa57a3de92ed8500d31b6ead1168ca27d76d6e2be1e3f8e0846887eb8da31dda",
+        .@"microzig/build" = .{
+            .url = "https://downloads.microzig.tech/microzig-0.12.1/build-0.0.1.tar.gz",
+            .hash = "122066a2dd8e6cfef346bc5cd6de8294fe9d53bde59b65b042750ee25537438df2ad",
         },
-        .raylib_zig = .{
-            .url = "https://github.com/mattnite/raylib-zig/archive/35924f5148ce9dbf8d3482ee11f90d62e71acc38.tar.gz",
-            .hash = "122045dde46149c6babf584d47c6cd6ad5da7111847518e6c434e1ed4550159ce3c2",
-        },
-        .raylib = .{
-            .url = "https://github.com/raysan5/raylib/archive/2e00d16f3d3808defe76d9af75df2dd714c66af2.tar.gz",
-            .hash = "1220b36684908380c4a1778c6c90b6b81a4ffba6d778e1f47dc7cab7ec9b2578dc85",
-        },
-        .uf2 = .{
-            .url = "https://github.com/ZigEmbeddedGroup/uf2/archive/206c027ee4c5eaf409b7bcbce86339c97b4926a6.tar.gz",
-            .hash = "122041fef1143717c2da02786654e50fa553b0a3ae5dda24cb717f5816adf71f6092",
+        .@"microzig/bsp/raspberrypi/rp2040" = .{
+            .url = "https://downloads.microzig.tech/microzig-0.12.1/bsp/raspberrypi/rp2040-0.0.0.tar.gz",
+            .hash = "1220a557b7c940ea0193e8e4f516c6dab6d16dd41e528486889f356a2388930aae42",
         },
     },
 }

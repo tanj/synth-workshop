@@ -16,7 +16,7 @@ pub const notes = @import("notes.zig");
 
 pub fn apply_volume(sample: anytype, volume: u12) @TypeOf(sample) {
     const Sample = @TypeOf(sample);
-    comptime assert(std.meta.trait.isSignedInt(Sample));
+    comptime assert(isSignedInt(Sample));
 
     const product = std.math.mulWide(Sample, sample, volume);
     return @as(Sample, @intCast(product >> 12));
@@ -184,7 +184,7 @@ pub fn Oscillator(comptime sample_rate: u32) type {
         }
 
         pub fn tick_modulate(self: *Self, comptime T: type, input: T, ratio: FrequencyRatio) void {
-            comptime assert(std.meta.trait.isSignedInt(T));
+            comptime assert(isSignedInt(T));
             // TODO: calculate Accumulator
             const base = @as(i64, @intCast(self.delta)) * input;
             const mod_delta = ((base * ratio.int) >> @bitSizeOf(T)) +
@@ -206,7 +206,7 @@ pub fn Oscillator(comptime sample_rate: u32) type {
         }
 
         pub fn to_sawtooth(self: Self, comptime T: type) T {
-            comptime assert(std.meta.trait.isSignedInt(T));
+            comptime assert(isSignedInt(T));
 
             const UnsignedSample = std.meta.Int(.unsigned, @bitSizeOf(T));
             return @as(T, @bitCast(@as(
@@ -216,7 +216,7 @@ pub fn Oscillator(comptime sample_rate: u32) type {
         }
 
         pub fn to_square(self: Self, comptime T: type) T {
-            comptime assert(std.meta.trait.isSignedInt(T));
+            comptime assert(isSignedInt(T));
 
             return if (self.delta != 0)
                 if (self.phase > (std.math.maxInt(u32) / 2))
@@ -228,7 +228,7 @@ pub fn Oscillator(comptime sample_rate: u32) type {
         }
 
         pub fn to_sine(self: Self, comptime T: type) T {
-            comptime assert(std.meta.trait.isSignedInt(T));
+            comptime assert(isSignedInt(T));
             const lut = comptime blk: {
                 const samples = 32;
 
@@ -335,7 +335,7 @@ pub const Keypad = struct {
     pub fn init(comptime options: Options) Self {
         const row_mask = comptime blk: {
             var result: u32 = 0;
-            inline for (options.row_pins) |pin|
+            for (options.row_pins) |pin|
                 result |= @as(u32, 1) << pin;
 
             break :blk gpio.mask(result);
@@ -343,7 +343,7 @@ pub const Keypad = struct {
 
         const col_mask = comptime blk: {
             var result: u32 = 0;
-            inline for (options.col_pins) |pin|
+            for (options.col_pins) |pin|
                 result |= @as(u32, 1) << pin;
 
             break :blk gpio.mask(result);
@@ -449,7 +449,7 @@ pub fn mix(
     comptime levels: []const f64,
     inputs: [levels.len]T,
 ) T {
-    comptime assert(std.meta.trait.isSignedInt(T));
+    comptime assert(isSignedInt(T));
     const weights = comptime weights: {
         for (levels) |level|
             assert(level >= 0.0); // levels must be positive
@@ -500,7 +500,7 @@ pub fn mix(
 }
 
 pub fn AdsrEnvelopeGenerator(comptime T: type) type {
-    assert(std.meta.trait.isSignedInt(T));
+    assert(isSignedInt(T));
     return struct {
         profile: Profile,
         envelope: Envelope,
@@ -769,5 +769,12 @@ pub fn Operator(comptime Sample: type, comptime sample_rate: u32) type {
             self.adsr.feed_event(event.keypad);
             self.vco.delta = event.vco_delta;
         }
+    };
+}
+
+fn isSignedInt(comptime T: type) bool {
+    return switch (@typeInfo(T)) {
+        .Int => |int_type| int_type.signedness == .signed,
+        else => false,
     };
 }
